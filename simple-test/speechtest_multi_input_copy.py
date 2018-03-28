@@ -13,7 +13,7 @@ def startRecording_D(queue_doctor):
     #using lsusb
     #the following name is only used as an example
     #mic_name = "USB PnP Sound Device"
-    mic_name_2 = "Built-in Microphone"
+    mic_name_D = "Built-in Microphone"
     #Sample rate is how often values are recorded
     sample_rate = 48000
     #Chunk is like a buffer. It stores 2048 samples (bytes of data)
@@ -36,9 +36,9 @@ def startRecording_D(queue_doctor):
             print(device_id)
     '''
     for i, microphone_name in enumerate(mic_list):
-        if microphone_name == mic_name_2:
-            device_id_2 = i
-            print(device_id_2)
+        if microphone_name == mic_name_D:
+            device_id_D = i
+            print(device_id_D)
 
     audio = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
     text = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
@@ -50,18 +50,18 @@ def startRecording_D(queue_doctor):
     wholetext = ""
     while k<20:
         k = k + 1
-        with sr.Microphone(device_index = device_id_2, sample_rate = sample_rate, chunk_size = chunk_size) as source_2:
+        with sr.Microphone(device_index = device_id_D, sample_rate = sample_rate, chunk_size = chunk_size) as source_D:
                 #wait for a second to let the recognizer adjust the
                 #energy threshold based on the surrounding noise level
-            r2.adjust_for_ambient_noise(source_2)
+            r2.adjust_for_ambient_noise(source_D)
             r2.pause_threshold = 2.0
-            print(source_2)
+            print(source_D)
             
             print "Doctor, Please Say Something"
             #listens for the user's input
-            audio[2*k] = r2.listen(source_2)
+            audio[2*k] = r2.listen(source_D)
             print "Record finish, processing"
-            Process_Read_2 = threading.Thread(target = Rec_Part_2, name = "test_doctor", args = (audio[2*k],))
+            Process_Read_2 = threading.Thread(target = RecogizeDoctor, name = "test_doctor", args = (audio[2*k],))
             Process_Read_2.start()
             print(threading.enumerate())
 
@@ -69,7 +69,7 @@ def startRecording_P(queue_patient):
         #enter the name of usb microphone that you found
     #using lsusb
     #the following name is only used as an example
-    mic_name = "USB PnP Sound Device"
+    mic_name_P = "USB PnP Sound Device"
     #mic_name_2 = "Built-in Microphone"
     #Sample rate is how often values are recorded
     sample_rate = 48000
@@ -88,9 +88,9 @@ def startRecording_P(queue_patient):
     #we specifically want to use to avoid ambiguity.
     
     for i, microphone_name in enumerate(mic_list):
-        if microphone_name == mic_name:
-            device_id = i
-            print(device_id)
+        if microphone_name == mic_name_P:
+            device_id_P = i
+            print(device_id_P)
     '''
     for i, microphone_name in enumerate(mic_list):
         if microphone_name == mic_name_2:
@@ -109,25 +109,25 @@ def startRecording_P(queue_patient):
     while k<20:
         k = k + 1
 
-        with sr.Microphone(device_index = device_id, sample_rate = sample_rate, chunk_size = chunk_size) as source:
+        with sr.Microphone(device_index = device_id_P, sample_rate = sample_rate, chunk_size = chunk_size) as source_P:
                 #wait for a second to let the recognizer adjust the
                 #energy threshold based on the surrounding noise level
-            r.adjust_for_ambient_noise(source)
+            r.adjust_for_ambient_noise(source_P)
             r.pause_threshold = 2.0
-            print(source)
+            print(source_P)
                     
             print "Patient, Please Say Something(with USB microphone)"
             #listens for the user's input
-            audio[2*k-1] = r.listen(source)
+            audio[2*k-1] = r.listen(source_P)
             print "Record finish, processing"
-            Process_Read_1 = threading.Thread(target = Rec_Part_1, name = "test_1", args = (audio[2*k-1],))
+            Process_Read_1 = threading.Thread(target = RecogizePatient, name = "test_patient", args = (audio[2*k-1],))
             Process_Read_1.start()
             print(threading.enumerate())
 
 
 
 
-def Rec_Part_2(audio):
+def RecogizeDoctor(audio):
     try:
         text[2*k] = r2.recognize_google(audio)
         print "doctor said: " + text[2*k]
@@ -143,17 +143,13 @@ def Rec_Part_2(audio):
     except sr.RequestError as e:
             print("Could not request results from Google Speech Recognition service; {0}".format(e))
 
-def Rec_Part_1(audio):
+def RecogizePatient(audio):
     try:
         text[2*k-1] = r.recognize_google(audio)
         print "patient said: " + text[2*k-1]
         #wholetext = wholetext + text[2*k-1]
         #Process(text[2*k-1])
         queue_patient.put(text[2*k-1])
-
-            
-            #error occurs when google could not understand what was said
-            
     except sr.UnknownValueError:
                 print("Google Speech Recognition could not understand audio")
             
@@ -216,10 +212,6 @@ def Keyword(text):
         record = []
         for k in range (0, len(keywordcategory)):
             record.append([])
-
-
-#for i in range (0, len(textsplit)):
-#           for j in range (0, len(textsplit[i])):
         for j in range (0, len(textsplit)):
                 for k in range (0, len(keywordcategory)):
                     if textsplit[j] in keywordcategory[k] :
@@ -242,7 +234,7 @@ def Keyword(text):
 
 
 if __name__ == '__main__':
-    r = sr.Recognizer()
+    rd = sr.Recognizer()
     r2 = sr.Recognizer()
     audio = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
     text = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]

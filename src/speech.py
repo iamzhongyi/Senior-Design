@@ -2,18 +2,20 @@
 
 import speech_recognition as sr
 import threading
+from threading import Thread, current_thread
 import time
-from multiprocessing import Process, Queue 
+from multiprocessing import Process, Queue, Manager 
 
 
-def RecordDoctor(person):
+def Record(person):
     #enter the name of usb microphone that you found
     #using lsusb
     #mic_name = "USB PnP Sound Device"
     if (person == "doctor"):
     	mic_name = "Built-in Microphone"
     else:
-    	mic_name = "USB PnP Sound Device"
+    	mic_name = "Built-in Microphone"
+    	#mic_name = "USB PnP Sound Device"
     #Sample rate is how often values are recorded
     sample_rate = 48000
     #Chunk is like a buffer, stores 2048 samples (bytes of data)
@@ -33,122 +35,69 @@ def RecordDoctor(person):
     #use the microphone as source for input. Here, we also specify
     #which device ID to specifically look for incase the microphone
     #is not working, an error will pop up saying "device_id undefined"
-
-	k = 0
-	wholetext = ""
 	with sr.Microphone(device_index = device_id, sample_rate = sample_rate, chunk_size = chunk_size) as source:
-		r2.adjust_for_ambient_noise(source)
-		r2.pause_threshold = 0.5
-		while k<20:
-			k = k + 1
-            #wait for a second to let the recognizer adjust the
+		recog.adjust_for_ambient_noise(source)
+		recog.pause_threshold = 0.5
+		while 1:
             #energy threshold based on the surrounding noise level
-            #print(source_D)
 			print person + " Please Say Something"
             #listens for the user's input
-			audio = r2.listen(source)
+			audio = recog.listen(source)
             #print "Record finish, processing"
-			t_recog = threading.Thread(target = RecogizeDoctor, name = "doctor", args = (audio,))
+			t_recog = threading.Thread(target = Recogize, name = person, args = (audio,))
 			t_recog.start()
-            # print(threading.enumerate())
 
-def RecordPatient(queue_patient):
-    #enter the name of usb microphone that you found
-    #using lsusb
-    #the following name is only used as an example
-    mic_name_P = "USB PnP Sound Device"
-    #mic_name_2 = "Built-in Microphone"
-    #Sample rate is how often values are recorded
-    sample_rate = 48000
-    #Chunk is like a buffer. It stores 2048 samples (bytes of data)
-    #here.
-    #it is advisable to use powers of 2 such as 1024 or 2048
-    chunk_size = 2048
-    #Initialize the recognizer
+def Recogize(audio):
+	person = current_thread().getName()
+	try:
+		index = queue_index.get()
+		queue_index.put(index+1)
+		text = recog.recognize_google(audio)
+		# to prevent strange "u'somestring'" in print
+		text = text.encode("utf8")
+		queue_sentence.put({index: person + ": " + text})
+	#error occurs when google could not understand what was said     
+	except sr.UnknownValueError:
+		print("Google Speech Recognition could not understand audio")    
+	except sr.RequestError as e:
+		print("Could not request results from Google Speech Recognition service; {0}".format(e))
 
-    #generate a list of all audio cards/microphones
-    mic_list = sr.Microphone.list_microphone_names()
-
-    #the following loop aims to set the device ID of the mic that
-    #we specifically want to use to avoid ambiguity.
-    
-    for i, microphone_name in enumerate(mic_list):
-        if microphone_name == mic_name_P:
-            device_id_P = i
-            print(device_id_P)
-
-    audio = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-    text = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-    #use the microphone as source for input. Here, we also specify
-    #which device ID to specifically look for incase the microphone
-    #is not working, an error will pop up saying "device_id undefined"
-
-    k = 0
-    wholetext = ""
-    while k<20:
-        k = k + 1
-
-        with sr.Microphone(device_index = device_id_P, sample_rate = sample_rate, chunk_size = chunk_size) as source_P:
-                #wait for a second to let the recognizer adjust the
-                #energy threshold based on the surrounding noise level
-            r.adjust_for_ambient_noise(source_P)
-            r.pause_threshold = 2.0
-            #print(source_P)
-                    
-            print "Patient, Please Say Something(with USB microphone)"
-            #listens for the user's input
-            audio[2*k-1] = r.listen(source_P)
-            print "Record finish, processing"
-            Process_Read_1 = threading.Thread(target = RecogizePatient, name = "test_patient", args = (audio[2*k-1],))
-            Process_Read_1.start()
-            print(threading.enumerate())
-
-def RecogizeDoctor(audio):
-    try:
-        text = r2.recognize_google(audio)
-        #print "doctor said: " + text
-        queue_sentence.put(text)
-        
-        #error occurs when google could not understand what was said
-        
-    except sr.UnknownValueError:
-            print("Google Speech Recognition could not understand audio")
-        
-    except sr.RequestError as e:
-            print("Could not request results from Google Speech Recognition service; {0}".format(e))
-
-def RecogizePatient(audio):
-    try:
-        text[2*k-1] = r.recognize_google(audio)
-        print "patient said: " + text[2*k-1]
-        queue_patient.put(text[2*k-1])
-    except sr.UnknownValueError:
-                print("Google Speech Recognition could not understand audio")
-            
-    except sr.RequestError as e:
-                print("Could not request results from Google Speech Recognition service; {0}".format(e))
+def Classify(text):
+	#classify interface
+	return 1
 
 def OutputSingle():
-	print queue_sentence.get()
+	pick = queue_sentence.get()
+	# add to whole dictionary
+	whole_para.update(pick)
+	# send to text classification
+	Classify(pick)
+	print pick
+	if "quit" in pick.values()[0]:
+		p_doctor.terminate()
+		p_patient.terminate()
+		return 1
+	return 0
 
-def OutputWhole():
-	print "output whole conversation"
+def OutputWhole(whole_para):
+	return sorted(whole_para.values())
 
 if __name__ == '__main__':
-    rd = sr.Recognizer()
-    r2 = sr.Recognizer()
-    audio = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-    text = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-    k = 0
-    queue_sentence = Queue()
-    queue_patient = Queue()
-    something = 0
-    process_doctor = Process(target = RecordDoctor, args=("doctor",))
-    #process_patient = Process(target = RecordPatient, args=(queue_patient,))
-    #process_patient.start()
-    process_doctor.start()
-    
-    while(1):
-    	OutputSingle()
+	whole_para = {}
+	recog = sr.Recognizer()
+	queue_sentence = Manager().Queue()
+	queue_index = Queue()
+	queue_index.put(1)
+	p_doctor = Process(target = Record, args=("doctor",))
+	p_patient = Process(target = Record, args=("patient",))
+	p_patient.start()
+	p_doctor.start()
+	quit_flag = 0
+	while(not quit_flag):
+		quit_flag = OutputSingle()
+
+    # p_patient.join()
+    # p_doctor.join()
+	print OutputWhole(whole_para)
 
     #print(threading.enumerate())
