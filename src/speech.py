@@ -8,30 +8,28 @@ from multiprocessing import Process, Queue, Manager
 
 
 def Record(person):
-    #enter the name of usb microphone that you found
-    #using lsusb
+	#enter the name of usb microphone that you found
+	#using lsusb
     #mic_name = "USB PnP Sound Device"
-    if (person == "doctor"):
-    	mic_name = "Built-in Microphone"
-    else:
-    	mic_name = "Built-in Microphone"
+	if (person == "doctor"):
+		mic_name = "Built-in Microphone"
+	else:
+		mic_name = "Built-in Microphone"
     	#mic_name = "USB PnP Sound Device"
     #Sample rate is how often values are recorded
-    sample_rate = 48000
+	sample_rate = 48000
     #Chunk is like a buffer, stores 2048 samples (bytes of data)
     #Advisable to use powers of 2 such as 1024 or 2048
-    chunk_size = 2048
+	chunk_size = 2048
 
     #generate a list of all audio cards/microphones
-    mic_list = sr.Microphone.list_microphone_names()
-
+	mic_list = sr.Microphone.list_microphone_names()
     #the following loop aims to set the device ID of the mic that
     #we specifically want to use to avoid ambiguity.
-    for i, microphone_name in enumerate(mic_list):
-        if microphone_name == mic_name:
-            device_id = i
-            #print(device_id)
-
+	
+	for i, microphone_name in enumerate(mic_list):
+		if microphone_name == mic_name:
+			device_id = i
     #use the microphone as source for input. Here, we also specify
     #which device ID to specifically look for incase the microphone
     #is not working, an error will pop up saying "device_id undefined"
@@ -40,10 +38,9 @@ def Record(person):
 		recog.pause_threshold = 0.5
 		while 1:
             #energy threshold based on the surrounding noise level
-			print person + " Please Say Something"
+			#print person + " Please Say Something"
             #listens for the user's input
 			audio = recog.listen(source)
-            #print "Record finish, processing"
 			t_recog = threading.Thread(target = Recogize, name = person, args = (audio,))
 			t_recog.start()
 
@@ -69,7 +66,7 @@ def Classify(text):
 def OutputSingle():
 	pick = queue_sentence.get()
 	# add to whole dictionary
-	whole_para.update(pick)
+	log.update(pick)
 	# send to text classification
 	Classify(pick)
 	print pick
@@ -79,11 +76,15 @@ def OutputSingle():
 		return 1
 	return 0
 
-def OutputWhole(whole_para):
-	return sorted(whole_para.values())
+def OutputWhole(log):
+	temp = log
+	whole = []
+	for i in sorted(log.keys()):
+		whole.append(temp[i])
+	return whole
 
 if __name__ == '__main__':
-	whole_para = {}
+	log = {}
 	recog = sr.Recognizer()
 	queue_sentence = Manager().Queue()
 	queue_index = Queue()
@@ -98,6 +99,6 @@ if __name__ == '__main__':
 
     # p_patient.join()
     # p_doctor.join()
-	print OutputWhole(whole_para)
+	print OutputWhole(log)
 
     #print(threading.enumerate())
