@@ -12,9 +12,11 @@ def Record(person):
 	#using lsusb
     #mic_name = "USB PnP Sound Device"
 	if (person == "doctor"):
-		mic_name = "Built-in Microphone"
+		mic_name = "USB PnP Sound Device" 
+		device_id = 4
 	else:
-		mic_name = "Built-in Microphone"
+		mic_name = "R555"
+		device_id = 0
     	#mic_name = "USB PnP Sound Device"
     #Sample rate is how often values are recorded
 	sample_rate = 48000
@@ -24,18 +26,19 @@ def Record(person):
 
     #generate a list of all audio cards/microphones
 	mic_list = sr.Microphone.list_microphone_names()
+	print mic_list
     #the following loop aims to set the device ID of the mic that
     #we specifically want to use to avoid ambiguity.
 	
-	for i, microphone_name in enumerate(mic_list):
-		if microphone_name == mic_name:
-			device_id = i
+	# for i, microphone_name in enumerate(mic_list):
+	# 	if microphone_name == mic_name:
+	# 		device_id = i
     #use the microphone as source for input. Here, we also specify
     #which device ID to specifically look for incase the microphone
     #is not working, an error will pop up saying "device_id undefined"
 	with sr.Microphone(device_index = device_id, sample_rate = sample_rate, chunk_size = chunk_size) as source:
 		recog.adjust_for_ambient_noise(source)
-		recog.pause_threshold = 0.5
+		recog.pause_threshold = 0.7
 		while 1:
             #energy threshold based on the surrounding noise level
 			#print person + " Please Say Something"
